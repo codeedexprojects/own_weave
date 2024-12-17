@@ -84,10 +84,10 @@ WSGI_APPLICATION = 'own_weave.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ownweave$db',  # Replace with actual DB name
+        'NAME': 'ownweave',          # Replace with your actual database name
         'USER': 'ownweave',          # MySQL username
-        'PASSWORD': 'admin@123',     # MySQL password
-        'HOST': 'ownweave.mysql.pythonanywhere-services.com',  # MySQL host address
+        'PASSWORD': 'Admin123',     # MySQL password
+        'HOST': 'ownweave.czq0seuskh1q.ap-south-1.rds.amazonaws.com',  # Your RDS MySQL endpoint
         'PORT': '3306',              # MySQL default port
     }
 }
