@@ -84,13 +84,14 @@ WSGI_APPLICATION = 'own_weave.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ownweave',          # Replace with your actual database name
-        'USER': 'ownweave',          # MySQL username
-        'PASSWORD': 'Admin123',     # MySQL password
-        'HOST': 'ownweave.czq0seuskh1q.ap-south-1.rds.amazonaws.com',  # Your RDS MySQL endpoint
-        'PORT': '3306',              # MySQL default port
+        'NAME': 'your_database_name',
+        'USER': 'ownweave',
+        'PASSWORD': 'Admin123',
+        'HOST': 'ownweave.czq0seuskh1q.ap-south-1.rds.amazonaws.com',  # RDS endpoint
+        'PORT': '3306',
     }
 }
+
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
