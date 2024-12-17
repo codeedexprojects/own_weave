@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'own_weave.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'your_database_name',
+        'NAME': 'ownweave',
         'USER': 'ownweave',
         'PASSWORD': 'Admin123',
         'HOST': 'ownweave.czq0seuskh1q.ap-south-1.rds.amazonaws.com',  # RDS endpoint
