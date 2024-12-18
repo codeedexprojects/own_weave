@@ -19,7 +19,8 @@ ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost',
     'http://127.0.0.1',
-    'https://ownweave.pythonanywhere.com'
+    'https://api.ownweave.com',
+    'https://ownweave.com'
 ]
 
 # Application Definition
