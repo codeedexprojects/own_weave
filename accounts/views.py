@@ -79,7 +79,7 @@ class UserRegistrationView(generics.CreateAPIView):
                 'mobile_number': user.mobile_number,
                 'email': user.email,
                 'address': user.addresses.first().address if user.addresses.exists() else None,
-                'post_office': user.addresses.first().post_office if user.addresses.exists() else None,
+                'landmark': user.addresses.first().landmark if user.addresses.exists() else None,
                 'block': user.addresses.first().block if user.addresses.exists() else None,
                 'district': user.addresses.first().district if user.addresses.exists() else None,
                 'state': user.addresses.first().state if user.addresses.exists() else None,

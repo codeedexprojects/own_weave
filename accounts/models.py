@@ -79,7 +79,7 @@ class Address(models.Model):
     mobile_number = models.CharField(max_length=15, blank=True, null=True)  # Addressed person's mobile number
     address = models.TextField()
     pincode = models.CharField(max_length=6, blank=False, null=False, default=None)
-    post_office = models.CharField(max_length=100, default="Unknown")
+    landmark = models.CharField(max_length=100,null=True)
     block = models.CharField(max_length=100, default="Unknown")
     district = models.CharField(max_length=100)
     state = models.CharField(max_length=100)

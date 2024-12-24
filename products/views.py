@@ -151,4 +151,11 @@ class ProductCountView(generics.ListAPIView):
         return Response({"total_products": total_products})
 
 
+class LastUpdatedProductsView(ListAPIView):
+    queryset = Product.objects.filter(is_visible_in_listing=True).order_by('-updated_at')[:5]
+    serializer_class = ProductSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+
 

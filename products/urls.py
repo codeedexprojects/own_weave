@@ -4,7 +4,7 @@ from .views import (
     CategoryListView, OfferViewSet, ProductSearchView, ProductViewSet,
     CategoryViewSet, SubCategoryViewSet, CategorySizeViewSet,
     ProductListView, ProductDetailView, ProductCategoryFilterView, ProductSubCategoryFilterView, ProductFilterByCategoryView,TestimonialViewSet,\
-    TestimonialDetailViewSet,ProductCountView
+    TestimonialDetailViewSet,ProductCountView,LastUpdatedProductsView
 )
 
 router = DefaultRouter()
@@ -26,5 +26,5 @@ urlpatterns = [
     path('Testmonial/', TestimonialViewSet.as_view(),name='Testimonial-create'),
     path('Testmonial/<int:pk>/', TestimonialDetailViewSet.as_view(),name='Testimonial-Detail'),
     path('product-count/', ProductCountView.as_view(), name='product-count'),
-
+    path('last-updated/', LastUpdatedProductsView.as_view(), name='last_updated_products'),
 ]
