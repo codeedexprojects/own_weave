@@ -62,7 +62,7 @@ class ProductSerializer(serializers.ModelSerializer):
         child=serializers.IntegerField(), write_only=True, required=False
     )
     available_lengths = serializers.SerializerMethodField()
-    width = serializers.DecimalField(max_digits=5, decimal_places=2)  # Keep width editable
+    width = serializers.CharField(max_length=5)  # Keep width editable
 
     is_visible_in_listing = serializers.BooleanField(read_only=True)
     is_out_of_stock = serializers.BooleanField(read_only=True)
@@ -104,21 +104,27 @@ class ProductSerializer(serializers.ModelSerializer):
         return obj.sub_category.name if obj.sub_category else None
 
     def get_available_lengths(self, obj):
-        # Check if a CategorySize object is linked to the product's category and width
-        try:
-            category_size = CategorySize.objects.get(category=obj.category, width=obj.width)
-            return {
-                "size_L_full_length": category_size.size_L_full_length,
-                "size_L_half_length": category_size.size_L_half_length,
-                "size_XL_full_length": category_size.size_XL_full_length,
-                "size_XL_half_length": category_size.size_XL_half_length,
-                "size_XXL_full_length": category_size.size_XXL_full_length,
-                "size_XXL_half_length": category_size.size_XXL_half_length,
-                "size_XXXL_full_length": category_size.size_XXXL_full_length,
-                "size_XXXL_half_length": category_size.size_XXXL_half_length,
-            }
-        except CategorySize.DoesNotExist:
-            return {}  # Return an empty dictionary if no matching CategorySize found
+        """
+        Return available lengths for the selected width (CategorySize).
+        Handles cases where multiple CategorySize objects exist.
+        """
+        category_sizes = CategorySize.objects.filter(category=obj.category, width=obj.width)
+        if category_sizes.exists():
+            # Assuming you want to aggregate or return the first matching size
+            lengths = []
+            for category_size in category_sizes:
+                lengths.append({
+                    "size_L_full_length": category_size.size_L_full_length,
+                    "size_L_half_length": category_size.size_L_half_length,
+                    "size_XL_full_length": category_size.size_XL_full_length,
+                    "size_XL_half_length": category_size.size_XL_half_length,
+                    "size_XXL_full_length": category_size.size_XXL_full_length,
+                    "size_XXL_half_length": category_size.size_XXL_half_length,
+                    "size_XXXL_full_length": category_size.size_XXXL_full_length,
+                    "size_XXXL_half_length": category_size.size_XXXL_half_length,
+                })
+            return lengths
+        return []  # Return an empty list if no matching CategorySize is found
 
 
     def create(self, validated_data):

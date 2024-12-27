@@ -49,7 +49,7 @@ class CategorySize(models.Model):
     ]
 
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="sizes")
-    width = models.DecimalField(max_digits=5, decimal_places=2, help_text="Width in inches (e.g., 44, 60, 120)")
+    width = models.CharField(max_length=5, help_text="Width in inches (e.g., 44, 60, 120)")
 
     # Define fields for each size and sleeve length within this width
     size_L_full_length = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
@@ -92,7 +92,7 @@ class Product(models.Model):
     product_code = models.CharField(max_length=100, unique=True, default=None, null=False)
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE, null=False, default=None)
     sub_category = models.ForeignKey(SubCategory, null=True, blank=True, related_name='products', on_delete=models.CASCADE)
-    width = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Width in inches")
+    width = models.CharField(max_length=5, help_text="Width in inches (e.g., 44, 60, 120)")
     price_per_meter = models.DecimalField(max_digits=10, decimal_places=2, null=False)
     offer_price_per_meter = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     wholesale_price_per_meter = models.DecimalField(max_digits=10, decimal_places=2, null=False, help_text="Price per meter for wholesale purchase")
@@ -140,10 +140,12 @@ class Product(models.Model):
     def available_lengths(self):
         """
         Return available lengths for the selected width (CategorySize).
+        Handles cases where multiple CategorySize objects exist.
         """
-        category_size = self.category.sizes.filter(width=self.width).first()
-        if category_size:
-            return {
+        category_sizes = self.category.sizes.filter(width=self.width)
+        lengths = []
+        for category_size in category_sizes:
+            lengths.append({
                 "size_L_full_length": category_size.size_L_full_length,
                 "size_L_half_length": category_size.size_L_half_length,
                 "size_XL_full_length": category_size.size_XL_full_length,
@@ -152,8 +154,8 @@ class Product(models.Model):
                 "size_XXL_half_length": category_size.size_XXL_half_length,
                 "size_XXXL_full_length": category_size.size_XXXL_full_length,
                 "size_XXXL_half_length": category_size.size_XXXL_half_length,
-            }
-        return {}
+            })
+        return lengths if lengths else {}
 
     def get_length(self, size, sleeve):
         """
