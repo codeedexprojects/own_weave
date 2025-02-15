@@ -594,7 +594,7 @@ class AdminOrderCreateView(APIView):
         # Extract payment details
         Track_id = data.get('Track_id')
         custom_total_price = data.get('custom_total_price')
-        Order_options=data.get('Order_options')
+        Order_options = data.get('Order_options')
         payment_method = data.get('payment_method')
         payment_status = data.get('payment_status')
 
@@ -603,106 +603,112 @@ class AdminOrderCreateView(APIView):
         if payment_status not in valid_payment_status:
             return Response({"error": "Invalid payment status."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create the AdminOrder with an initial total_price of 0
-        admin_order = AdminOrder.objects.create(
-            name=name,
-            phone_number=phone_number,
-            address=address,
-            state=state,
-            pincode=pincode,
-            city=city,
-            district=district,
-            Track_id=Track_id,
-            payment_method=payment_method,
-            payment_status=payment_status,
-            Order_options=Order_options,
-            custom_total_price=custom_total_price,
-            total_price=Decimal("0.00")  # Set a default value for total_price
-        )
+        # Use a transaction to ensure atomicity
+        try:
+            with transaction.atomic():
+                # Create the AdminOrder with an initial total_price of 0
+                admin_order = AdminOrder.objects.create(
+                    name=name,
+                    phone_number=phone_number,
+                    address=address,
+                    state=state,
+                    pincode=pincode,
+                    city=city,
+                    district=district,
+                    Track_id=Track_id,
+                    payment_method=payment_method,
+                    payment_status=payment_status,
+                    Order_options=Order_options,
+                    custom_total_price=custom_total_price,
+                    total_price=Decimal("0.00")  # Set a default value for total_price
+                )
 
-        # Process products
-        total_price = Decimal("0.00")
-        products_data = data.get('products', [])
-        for product_data in products_data:
-            product_code = product_data.get('product_code')
-            free_product_code = product_data.get('free_product_code')
-            quantity = int(product_data.get('quantity', 1))
-            size = product_data.get('size')
-            sleeve = product_data.get('sleeve')
-            custom_length = product_data.get('custom_length')
+                # Process products
+                total_price = Decimal("0.00")
+                products_data = data.get('products', [])
+                for product_data in products_data:
+                    product_code = product_data.get('product_code')
+                    free_product_code = product_data.get('free_product_code')
+                    quantity = int(product_data.get('quantity', 1))
+                    size = product_data.get('size')
+                    sleeve = product_data.get('sleeve')
+                    custom_length = product_data.get('custom_length')
 
-            product = get_object_or_404(Product, product_code=product_code)
+                    product = get_object_or_404(Product, product_code=product_code)
 
-            # Determine the length based on size, sleeve, or custom length
-            if size and sleeve:
-                category_size = product.category.sizes.filter(width=product.width).first()
-                if not category_size:
-                    return Response({"error": f"No matching category size found for {product.name}."}, status=status.HTTP_400_BAD_REQUEST)
-                length = category_size.get_length(size, sleeve)
-            elif custom_length:
-                try:
-                    length = Decimal(custom_length)
-                except ValueError:
-                    return Response({"error": f"Invalid custom length for {product.name}."}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({"error": f"Either size/sleeve or custom length is required for {product.name}."}, status=status.HTTP_400_BAD_REQUEST)
+                    # Determine the length based on size, sleeve, or custom length
+                    if size and sleeve:
+                        category_size = product.category.sizes.filter(width=product.width).first()
+                        if not category_size:
+                            raise ValueError(f"No matching category size found for {product.name}.")
+                        length = category_size.get_length(size, sleeve)
+                    elif custom_length:
+                        try:
+                            length = Decimal(custom_length)
+                        except ValueError:
+                            raise ValueError(f"Invalid custom length for {product.name}.")
+                    else:
+                        raise ValueError(f"Either size/sleeve or custom length is required for {product.name}.")
 
-            total_order_length = length * quantity
-            if product.stock_length < total_order_length:
-                return Response({"error": f"Insufficient stock for {product.name}."}, status=status.HTTP_400_BAD_REQUEST)
+                    total_order_length = length * quantity
+                    if product.stock_length < total_order_length:
+                        raise ValueError(f"Insufficient stock for {product.name}.")
 
-            # Calculate total price and discounts
-            item_price = Decimal(product.offer_price_per_meter) * length * quantity
-            discount_amount = Decimal("0.00")
-            offer_type = None
-            free_product = None
+                    # Calculate total price and discounts
+                    item_price = Decimal(product.offer_price_per_meter) * length * quantity
+                    discount_amount = Decimal("0.00")
+                    offer_type = None
+                    free_product = None
 
-            if product.offer:
-                if product.offer.offer_type == 'BOGO':
-                    if free_product_code:
-                        free_product = get_object_or_404(Product, product_code=free_product_code)
-                        if free_product.stock_length < total_order_length:
-                            return Response({"error": f"Insufficient stock for free product {free_product.name}."}, status=status.HTTP_400_BAD_REQUEST)
-                    offer_type = 'BOGO'
-                elif product.offer.offer_type == 'PERCENTAGE':
-                    offer_type = 'PERCENTAGE'
-                    discount_percentage = product.offer.discount_value
-                    discount_amount = item_price * (Decimal(discount_percentage) / 100)
-                    item_price -= discount_amount
+                    if product.offer:
+                        if product.offer.offer_type == 'BOGO':
+                            if free_product_code:
+                                free_product = get_object_or_404(Product, product_code=free_product_code)
+                                if free_product.stock_length < total_order_length:
+                                    raise ValueError(f"Insufficient stock for free product {free_product.name}.")
+                            offer_type = 'BOGO'
+                        elif product.offer.offer_type == 'PERCENTAGE':
+                            offer_type = 'PERCENTAGE'
+                            discount_percentage = product.offer.discount_value
+                            discount_amount = item_price * (Decimal(discount_percentage) / 100)
+                            item_price -= discount_amount
 
-            total_price += max(Decimal("0.00"), item_price)
+                    total_price += max(Decimal("0.00"), item_price)
 
-            # Create AdminOrderProduct
-            AdminOrderProduct.objects.create(
-                admin_order=admin_order,
-                product=product,
-                quantity=quantity,
-                size=size,
-                sleeve=sleeve,
-                custom_length=custom_length,
-                length=length,
-                free_product=free_product,
-                offer_type=offer_type,
-                discount_amount=discount_amount,
-                total_price=item_price
-            )
+                    # Create AdminOrderProduct
+                    AdminOrderProduct.objects.create(
+                        admin_order=admin_order,
+                        product=product,
+                        quantity=quantity,
+                        size=size,
+                        sleeve=sleeve,
+                        custom_length=custom_length,
+                        length=length,
+                        free_product=free_product,
+                        offer_type=offer_type,
+                        discount_amount=discount_amount,
+                        total_price=item_price
+                    )
 
-            # Deduct stock for the main product and free product
-            product.stock_length -= total_order_length
-            product.save()
-            if free_product:
-                free_product.stock_length -= total_order_length
-                free_product.save()
+                    # Deduct stock for the main product and free product
+                    product.stock_length -= total_order_length
+                    product.save()
+                    if free_product:
+                        free_product.stock_length -= total_order_length
+                        free_product.save()
 
-        # Update total price for the order
-        admin_order.total_price = total_price
-        admin_order.save()
+                # Update total price for the order
+                admin_order.total_price = total_price
+                admin_order.save()
 
-        serializer = AdminOrderSerializer(admin_order)
-        return Response({
-            "message": "Order created successfully.",
-            "order_details": serializer.data
-        }, status=status.HTTP_201_CREATED)
+                serializer = AdminOrderSerializer(admin_order)
+                return Response({
+                    "message": "Order created successfully.",
+                    "order_details": serializer.data
+                }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminOrderListAPIView(generics.ListAPIView):
